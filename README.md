@@ -11,6 +11,13 @@ is a fork of another UwUing project I wrote with @sgoudham. [This one](https://g
 - Dead easy to deploy using [trunk](https://github.com/thedodd/trunk)
 - Very fast to load, only needing just 500KB
 
+## Cloning
+
+Make sure you clone this project with
+```sh
+git clone --recursive https://github.com/StratusFearMe21/webuwu
+```
+
 ## Deploying
 
 Just run trunk
