@@ -57,7 +57,7 @@ impl App {
                     })
                 }),
 
-                html!("div", {
+                html!("center", {
                     .class("row")
                     .style("white-space", "nowrap")
                     .style("overflow-x", "scroll")
@@ -67,6 +67,8 @@ impl App {
                     .children(&mut [
                         html!("button", {
                             .style("margin-right", "5px")
+                            .style("width", "32%")
+                            .style("min-width", "min-content")
 
                             .event(clone!(app => move |_: events::Click| {
                                 app.uwuify.words.set_neq(1.0);
@@ -81,6 +83,8 @@ impl App {
 
                         html!("button", {
                             .style("margin-right", "5px")
+                            .style("width", "32%")
+                            .style("min-width", "min-content")
 
                             .event(clone!(app => move |_: events::Click| {
                                 app.uwuify.words.set_neq(1.0);
@@ -95,6 +99,8 @@ impl App {
 
                         html!("button", {
                             .style("margin-right", "5px")
+                            .style("width", "32%")
+                            .style("min-width", "min-content")
 
                             .event(clone!(app => move |_: events::Click| {
                                 app.uwuify.new_seed();
