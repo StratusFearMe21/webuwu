@@ -128,20 +128,10 @@ impl<'a> Iterator for UwUIter<'a> {
 
 impl UwUify {
     pub fn new_seed(&self) {
-        let mut seed_one = [0u8; 8];
-        let mut seed_two = [0u8; 8];
-        let mut seed_three = [0u8; 8];
-        let mut seed_four = [0u8; 8];
-        getrandom::getrandom(&mut seed_one).unwrap();
-        getrandom::getrandom(&mut seed_two).unwrap();
-        getrandom::getrandom(&mut seed_three).unwrap();
-        getrandom::getrandom(&mut seed_four).unwrap();
-        *self.random.lock().unwrap() = RandomState::with_seeds(
-            u64::from_ne_bytes(seed_one),
-            u64::from_ne_bytes(seed_two),
-            u64::from_ne_bytes(seed_three),
-            u64::from_ne_bytes(seed_four),
-        );
+        let mut seed = [0u8; 32];
+        getrandom::getrandom(&mut seed).unwrap();
+        let seed = unsafe { std::mem::transmute::<[u8; 32], [u64; 4]>(seed) };
+        *self.random.lock().unwrap() = RandomState::with_seeds(seed[0], seed[1], seed[2], seed[3]);
     }
 
     pub fn uwuify_iter<'a>(&'a self, text: &'a str) -> UwUIter<'a> {
