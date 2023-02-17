@@ -18,16 +18,21 @@ Make sure you clone this project with
 git clone --recursive https://github.com/StratusFearMe21/webuwu
 ```
 
-## Deploying
+## Building
+
+You must add `RUSTFLAGS="--cfg=web_sys_unstable_apis"` to your build commands because this app uses the
+`Navigator.Clipboard` API, which is unstable.
+
+### Deploying
 
 Just run trunk
 ```sh
-trunk build --release
+RUSTFLAGS="--cfg=web_sys_unstable_apis" trunk build --release
 ```
 
-## Testing
+### Testing
 
 Just run trunk
 ```sh
-trunk serve
+RUSTFLAGS="--cfg=web_sys_unstable_apis" trunk serve
 ```

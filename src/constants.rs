@@ -1,5 +1,4 @@
-pub const ASCII_FACES_SIZE: usize = 23;
-pub const ASCII_FACES: [&[u8]; ASCII_FACES_SIZE] = [
+pub const MIXED_FACES: [&[u8]; 89] = [
     b"OwO ",
     b"UwU ",
     b">w< ",
@@ -23,10 +22,6 @@ pub const ASCII_FACES: [&[u8]; ASCII_FACES_SIZE] = [
     b"{{ (>_<) }} ",
     b"(^-^*)/ ",
     b"( ~*-*)~ ",
-];
-
-pub const UNICODE_FACES_SIZE: usize = 66;
-pub const UNICODE_FACES: [&[u8]; UNICODE_FACES_SIZE] = [
     // (* ^ ω ^)
     b"(* ^ \xCF\x89 ^) ",
     // (´ ∀ ` *)
@@ -161,38 +156,7 @@ pub const UNICODE_FACES: [&[u8]; UNICODE_FACES_SIZE] = [
     b"(\xE3\x80\x80\xEF\xBD\xA5\xCF\x89\xEF\xBD\xA5)\xE2\x98\x9E ",
 ];
 
-pub const MIXED_FACES_SIZE: usize = mixed_len(&ASCII_FACES, &UNICODE_FACES);
-pub const MIXED_FACES: [&[u8]; MIXED_FACES_SIZE] = mixed_array(&ASCII_FACES, &UNICODE_FACES);
-
-pub const fn mixed_len(ascii_array: &[&[u8]], unicode_array: &[&[u8]]) -> usize {
-    unicode_array.len() + ascii_array.len()
-}
-
-pub const fn mixed_array(
-    ascii_array: &'static [&'static [u8]],
-    unicode_array: &'static [&'static [u8]],
-) -> [&'static [u8]; MIXED_FACES_SIZE] {
-    let mut mixed_array: [&'static [u8]; MIXED_FACES_SIZE] = [&[]; MIXED_FACES_SIZE];
-    let ascii_len = ascii_array.len();
-    let mut count = 0;
-    let mut second_count = 0;
-
-    while count < ascii_len {
-        mixed_array[count] = ascii_array[count];
-        count += 1;
-    }
-
-    while count < MIXED_FACES_SIZE {
-        mixed_array[count] = unicode_array[second_count];
-        count += 1;
-        second_count += 1;
-    }
-
-    mixed_array
-}
-
-pub const ACTIONS_SIZE: usize = 19;
-pub const ACTIONS: [&[u8]; ACTIONS_SIZE] = [
+pub const ACTIONS: [&[u8]; 19] = [
     b"*notices bulge* ",
     b"*cries* ",
     b"*hugs tightly* ",

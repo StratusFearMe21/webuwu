@@ -1,17 +1,15 @@
 #![cfg_attr(all(feature = "bench", test), feature(test))]
 
-use std::io::{Error, Write};
-use std::str::from_utf8_unchecked;
+use std::fmt::Write;
+use std::io::Error;
+use std::str::SplitWhitespace;
 use std::sync::Mutex;
 
 use ahash::RandomState;
 use futures_signals::signal::Mutable;
 use linkify::{LinkFinder, LinkKind};
 
-use crate::constants::{
-    ACTIONS, ACTIONS_SIZE, ASCII_FACES, ASCII_FACES_SIZE, MIXED_FACES, MIXED_FACES_SIZE,
-    UNICODE_FACES, UNICODE_FACES_SIZE,
-};
+use crate::constants::{ACTIONS, MIXED_FACES};
 
 macro_rules! new_seeder {
     ($word:expr,$seeder:expr) => {
@@ -31,16 +29,16 @@ macro_rules! random_int {
     };
 }
 
-macro_rules! write {
-    ($out:expr, $bytes:expr) => {
-        $out.write_all($bytes)
-    };
+#[derive(Default, Debug)]
+pub struct Token {
+    stutter: bool,
+    word: String,
+    face: Option<usize>,
+    action: Option<usize>,
 }
 
 #[derive(Debug)]
 pub struct UwUify {
-    ascii_only: bool,
-    unicode_only: bool,
     random: Mutex<RandomState>,
     pub words: Mutable<f64>,
     pub faces: Mutable<f64>,
@@ -52,8 +50,6 @@ pub struct UwUify {
 impl Default for UwUify {
     fn default() -> Self {
         Self {
-            ascii_only: true,
-            unicode_only: false,
             random: Mutex::new(RandomState::with_seeds(69, 420, 96, 84)),
             words: Mutable::new(1.0),
             faces: Mutable::new(0.05),
@@ -66,6 +62,67 @@ impl Default for UwUify {
                 linkify
             },
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct UwUIter<'a>(SplitWhitespace<'a>, &'a UwUify);
+
+impl<'a> Iterator for UwUIter<'a> {
+    type Item = Token;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let Some(word) = self.0.next() else {
+            return None;
+        };
+
+        let mut seeder = new_seeder!(word, &self.1.random.lock().unwrap());
+        let random_value = random_float!(&mut seeder);
+
+        let words = self.1.words.get();
+        let faces = self.1.faces.get();
+        let actions = self.1.actions.get();
+        let stutters = self.1.stutters.get();
+
+        let mut token = Token::default();
+
+        if random_value <= faces {
+            token.face = Some(random_int!(&mut seeder, 0..MIXED_FACES.len()));
+        }
+
+        if random_value <= actions {
+            token.action = Some(random_int!(&mut seeder, 0..ACTIONS.len()));
+        }
+
+        token.stutter = random_value <= stutters;
+
+        if self.1.linkify.links(word).count() > 0 || random_value > words {
+            token.word = word.to_owned();
+        } else {
+            let mut chars = word.chars();
+
+            while let Some(w) = chars.next() {
+                match w {
+                    'L' | 'R' => token.word.write_char('W').unwrap(),
+                    'l' | 'r' => token.word.write_char('w').unwrap(),
+                    'N' | 'n' => {
+                        if let Some(w) = chars.next() {
+                            match w {
+                                'L' | 'R' => token.word.write_char('W').unwrap(),
+                                'l' | 'r' => token.word.write_char('w').unwrap(),
+                                c @ ('A' | 'E' | 'I' | 'O' | 'U' | 'a' | 'e' | 'i' | 'o' | 'u') => {
+                                    token.word.write_char('y').unwrap();
+                                    token.word.write_char(c).unwrap();
+                                }
+                                c => token.word.write_char(c).unwrap(),
+                            }
+                        }
+                    }
+                    c => token.word.write_char(c).unwrap(),
+                };
+            }
+        }
+        Some(token)
     }
 }
 
@@ -87,73 +144,26 @@ impl UwUify {
         );
     }
 
-    pub fn uwuify_sentence<T: Write>(&self, text: &str, out: &mut T) -> Result<(), Error> {
-        let words = self.words.get();
-        let faces = self.faces.get();
-        let actions = self.actions.get();
-        let stutters = self.stutters.get();
+    pub fn uwuify_iter<'a>(&'a self, text: &'a str) -> UwUIter<'a> {
+        UwUIter(text.split_whitespace(), &self)
+    }
 
-        text.lines().try_for_each(|line| {
-            line.split_whitespace()
-                .map(|word_str| word_str.as_bytes())
-                .try_for_each(|word| {
-                    let mut seeder = new_seeder!(word, &self.random.lock().unwrap());
-                    let random_value = random_float!(&mut seeder);
+    pub fn uwuify_sentence<T: std::io::Write>(&self, text: &str, out: &mut T) -> Result<(), Error> {
+        self.uwuify_iter(text).try_for_each(|word| {
+            if let Some(face) = word.face {
+                out.write_all(MIXED_FACES[face])?;
+            }
 
-                    if random_value <= faces {
-                        if self.ascii_only {
-                            write!(
-                                out,
-                                ASCII_FACES[random_int!(&mut seeder, 0..ASCII_FACES_SIZE)]
-                            )?;
-                        } else if self.unicode_only {
-                            write!(
-                                out,
-                                UNICODE_FACES[random_int!(&mut seeder, 0..UNICODE_FACES_SIZE)]
-                            )?;
-                        } else {
-                            write!(
-                                out,
-                                MIXED_FACES[random_int!(&mut seeder, 0..MIXED_FACES_SIZE)]
-                            )?;
-                        }
-                    }
-                    if random_value <= actions {
-                        write!(out, ACTIONS[random_int!(&mut seeder, 0..ACTIONS_SIZE)])?;
-                    }
-                    if random_value <= stutters {
-                        match word[0] {
-                            b'L' | b'R' if random_value < words => write!(out, b"W"),
-                            b'l' | b'r' if random_value < words => write!(out, b"w"),
-                            byte => write!(out, &[byte]),
-                        }?;
-                        write!(out, b"-")?;
-                    }
+            if let Some(action) = word.action {
+                out.write_all(ACTIONS[action])?;
+            }
 
-                    if self
-                        .linkify
-                        .links(unsafe { from_utf8_unchecked(word) })
-                        .count()
-                        > 0
-                        || random_value > words
-                    {
-                        write!(out, word)?;
-                    } else {
-                        (0..word.len()).try_for_each(|index| match word[index] {
-                            b'L' | b'R' => write!(out, b"W"),
-                            b'l' | b'r' => write!(out, b"w"),
-                            b'A' | b'E' | b'I' | b'O' | b'U' | b'a' | b'e' | b'i' | b'o' | b'u' => {
-                                match word.get(index - 1).unwrap_or(&word[0]) {
-                                    b'N' | b'n' => write!(out, &[b'y', word[index]]),
-                                    _ => write!(out, &[word[index]]),
-                                }
-                            }
-                            byte => write!(out, &[byte]),
-                        })?;
-                    }
-                    write!(out, b" ")
-                })?;
-            write!(out, b"\n")
+            if word.stutter {
+                out.write_fmt(format_args!("{}-", word.word.chars().next().unwrap_or('W')))?;
+            }
+
+            out.write_all(word.word.as_bytes())?;
+            out.write_all(b" ")
         })
     }
 }

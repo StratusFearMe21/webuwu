@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 mod constants;
 mod uwu;
@@ -11,14 +11,14 @@ use web_sys::{HtmlInputElement, HtmlTextAreaElement};
 
 struct App {
     output: Mutable<String>,
-    input: Mutex<String>,
+    input: Mutable<String>,
     uwuify: UwUify,
 }
 
 impl App {
     fn new() -> Arc<Self> {
         Arc::new(App {
-            input: Mutex::new(String::new()),
+            input: Mutable::new(String::new()),
             output: Mutable::new(String::new()),
             uwuify: UwUify::default(),
         })
@@ -27,9 +27,7 @@ impl App {
     fn uwuify(&self) {
         let mut new = String::new();
         self.uwuify
-            .uwuify_sentence(self.input.lock().unwrap().as_str(), unsafe {
-                new.as_mut_vec()
-            })
+            .uwuify_sentence(&*self.input.lock_ref(), unsafe { new.as_mut_vec() })
             .unwrap();
         self.output.set_neq(new);
     }
@@ -49,9 +47,11 @@ impl App {
                     .focused(true)
                     .class("u-full-width")
                     .attr("id", "uwu")
+                    .prop_signal("value", app.input.signal_cloned())
+
                     .with_node!(element => {
                         .event(clone!(app => move |_: events::Input| {
-                            *app.input.lock().unwrap() = element.value();
+                            app.input.set_neq(element.value());
                             app.uwuify();
                         }))
                     })
@@ -67,7 +67,7 @@ impl App {
                     .children(&mut [
                         html!("button", {
                             .style("margin-right", "5px")
-                            .style("width", "32%")
+                            .style("width", "19%")
                             .style("min-width", "min-content")
 
                             .event(clone!(app => move |_: events::Click| {
@@ -83,7 +83,7 @@ impl App {
 
                         html!("button", {
                             .style("margin-right", "5px")
-                            .style("width", "32%")
+                            .style("width", "19%")
                             .style("min-width", "min-content")
 
                             .event(clone!(app => move |_: events::Click| {
@@ -99,7 +99,20 @@ impl App {
 
                         html!("button", {
                             .style("margin-right", "5px")
-                            .style("width", "32%")
+                            .style("width", "19%")
+                            .style("min-width", "min-content")
+
+                            .event(clone!(app => move |_: events::Click| {
+                                app.input.set_neq(app.output.get_cloned());
+                                app.uwuify();
+                            }))
+
+                            .text("Double UwU")
+                        }),
+
+                        html!("button", {
+                            .style("margin-right", "5px")
+                            .style("width", "19%")
                             .style("min-width", "min-content")
 
                             .event(clone!(app => move |_: events::Click| {
@@ -109,6 +122,26 @@ impl App {
 
                             .text("Regenerate Seed")
                         }),
+
+                        html!("button", {
+                            .style("margin-right", "5px")
+                            .style("width", "19%")
+                            .style("min-width", "min-content")
+
+                            .event(clone!(app => move |_: events::Click| {
+                                if let Some(window) = web_sys::window() {
+                                    if let Some(clipboard) = window.navigator().clipboard() {
+                                        wasm_bindgen_futures::spawn_local(clone!(app => async move {
+                                            wasm_bindgen_futures::JsFuture::from(
+                                                clipboard.write_text(&*app.output.lock_ref())
+                                            ).await.unwrap();
+                                        }))
+                                    }
+                                }
+                            }))
+
+                            .text("Copy to Clipboard")
+                        })
                     ])
                 }),
 
