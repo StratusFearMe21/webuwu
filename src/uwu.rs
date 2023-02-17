@@ -1,7 +1,6 @@
 #![cfg_attr(all(feature = "bench", test), feature(test))]
 
-use std::fmt::Write;
-use std::io::Error;
+use std::fmt::{Error, Write};
 use std::str::SplitWhitespace;
 use std::sync::Mutex;
 
@@ -148,22 +147,22 @@ impl UwUify {
         UwUIter(text.split_whitespace(), &self)
     }
 
-    pub fn uwuify_sentence<T: std::io::Write>(&self, text: &str, out: &mut T) -> Result<(), Error> {
+    pub fn uwuify_sentence<T: Write>(&self, text: &str, out: &mut T) -> Result<(), Error> {
         self.uwuify_iter(text).try_for_each(|word| {
             if let Some(face) = word.face {
-                out.write_all(MIXED_FACES[face])?;
+                out.write_str(MIXED_FACES[face])?;
             }
 
             if let Some(action) = word.action {
-                out.write_all(ACTIONS[action])?;
+                out.write_str(ACTIONS[action])?;
             }
 
             if word.stutter {
                 out.write_fmt(format_args!("{}-", word.word.chars().next().unwrap_or('W')))?;
             }
 
-            out.write_all(word.word.as_bytes())?;
-            out.write_all(b" ")
+            out.write_str(&word.word)?;
+            out.write_char(' ')
         })
     }
 }

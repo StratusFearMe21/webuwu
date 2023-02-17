@@ -27,7 +27,7 @@ impl App {
     fn uwuify(&self) {
         let mut new = String::new();
         self.uwuify
-            .uwuify_sentence(&*self.input.lock_ref(), unsafe { new.as_mut_vec() })
+            .uwuify_sentence(&*self.input.lock_ref(), &mut new)
             .unwrap();
         self.output.set_neq(new);
     }
