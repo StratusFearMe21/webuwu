@@ -104,7 +104,8 @@ impl<'a> Iterator for UwUIter<'a> {
                 match w {
                     'L' | 'R' => token.word.write_char('W').unwrap(),
                     'l' | 'r' => token.word.write_char('w').unwrap(),
-                    'N' | 'n' => {
+                    c @ ('N' | 'n') => {
+                        token.word.write_char(c).unwrap();
                         if let Some(w) = chars.next() {
                             match w {
                                 'L' | 'R' => token.word.write_char('W').unwrap(),
